@@ -10,6 +10,7 @@
 #include <cmath>
 #include <tuple>
 #include <chrono>
+#include <time.h>
 //---
 #include "Loop.h"
 
@@ -18,16 +19,15 @@ using namespace std;
 
 int main()
 {
-	//srand(time(0));
+	setlocale(LC_ALL, "Rus");
+	srand(time(0));
 	ios_base::sync_with_stdio(0);
 	cin.tie(0);
-	setlocale(LC_ALL, "Russian");
+
 
 	Loop loop;
 
 	loop.concat();
-	//loop.ma();
-
 	
 	return 0;
 }

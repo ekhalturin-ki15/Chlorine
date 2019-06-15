@@ -32,9 +32,9 @@ public:
 	Loop();
 	~Loop();
 
-	void ma();
-
 	void concat();
+
+	vector<string> extractWAV(string path);
 
 private:
 	ofstream out;

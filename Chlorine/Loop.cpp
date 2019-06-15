@@ -1,10 +1,38 @@
 #include "Loop.h"
 #include <experimental/filesystem>
 #include "lame.h"
-#include <time.h>
 namespace fs = std::experimental::filesystem;
 
 #define endl "\n"
+
+vector<string> Loop::extractWAV(string path)
+{
+	//Обработка всех файлов в папке scaning формата wav
+	const fs::path workdir = fs::current_path() / path;
+
+	fs::recursive_directory_iterator begin(workdir);
+	fs::recursive_directory_iterator end;
+	// Получаем список подкаталогов с помощью алгоритма copy_if
+	vector<fs::path> Files;
+	copy_if
+	(
+		begin, end, std::back_inserter(Files), [](const fs::path & path)
+		{
+			return fs::is_regular_file(path) && (path.extension() == ".wav");
+		}
+	);
+
+	size_t i, n = Files.size();
+	vector<string> all_dir(n);
+	for (i = 0; i < n; i++)
+	{
+		string dir;
+		dir = Files[i].string();
+		std::size_t found = dir.rfind("\\");
+		all_dir[i] = dir.substr(found+1);
+	}
+	return all_dir;
+}
 
 void conwert(string name)
 {
@@ -50,52 +78,6 @@ Loop::~Loop()
 {
 	out.close();
 }
-//void Loop::ma()
-//{
-//
-//	//Обработка всех файлов в папке scaning формата wav
-//	const fs::path workdir = fs::current_path() / "scaning";
-//
-//	fs::recursive_directory_iterator begin(workdir);
-//	fs::recursive_directory_iterator end;
-//	// Получаем список подкаталогов с помощью алгоритма copy_if
-//	vector<fs::path> Files;
-//	copy_if
-//	(
-//		begin, end, std::back_inserter(Files), [](const fs::path & path)
-//		{
-//			return fs::is_regular_file(path) && (path.extension() == ".wav");
-//		}
-//	);
-//
-//
-//	for (int i =0 ; i < Files.size();i++)
-//	{
-//		string dir;
-//		dir = Files[i].string();
-//		string::size_type n = -1;
-//		while (dir.find("scaning", n+1) != string::npos)
-//		{
-//			n = dir.find("scaning", n+1);
-//		}
-//		dir = dir.substr(n);
-//		out << "Работа с файлом :" << dir << endl;
-//		string res = wav.read(dir);
-//		out << res;
-//		if (res == "Успешное открытие\n")
-//		{
-//			cout << i+1<<" ок \n";
-//			out << "Кол-во экстремумов: " << wav.getSize() << endl;
-//			out << "Середина между экстремумами: " << ToString(wav.getMiddle())<< endl;
-//		}
-//		else
-//		{
-//			cout << i + 1 << " нет \n";
-//		}
-//		out << "-----------" << endl << endl;
-//
-//	}
-//}
 
 
 void Loop::concat()
@@ -103,50 +85,30 @@ void Loop::concat()
 
 	cout << "Подождите, идёт анализ\n";
 
-	//Обработка всех файлов в папке scaning формата wav
-	const fs::path workdir = fs::current_path() / "biblio";
+	vector<string> all_dir = extractWAV("biblio");
 
-	fs::recursive_directory_iterator begin(workdir);
-	fs::recursive_directory_iterator end;
-	// Получаем список подкаталогов с помощью алгоритма copy_if
-	vector<fs::path> Files;
-	copy_if
-	(
-		begin, end, std::back_inserter(Files), [](const fs::path & path)
-		{
-			return fs::is_regular_file(path) && (path.extension() == ".wav");
-		}
-	);
-	
-	cout << "Введите название файла\n";
-	string nameFile;
-	cin >> nameFile;
-	cout << "Из скольки семплов сделать склейку?\n";
-	size_t lenght;
-	cin >> lenght;
-
-	size_t k, i, n = Files.size();
-	vector<string> all_dir(n);
-	for (i = 0; i < n; i++)
+	while (true)
 	{
-		string dir;
-		dir = Files[i].string();
-		string::size_type n = -1;
-		while (dir.find("biblio", n + 1) != string::npos)
-		{
-			n = dir.find("biblio", n + 1);
-		}
-		all_dir[i] = dir.substr(n);
-	}
+		cout << "Введите название файла (! - выйти) \n";
+		string nameFile = "";
+		cin >> nameFile;
+		if (nameFile == "!") break;
+		cout << "Из скольки семплов сделать склейку? (0 - выйти)\n";
+		size_t lenght = 0;
+		cin >> lenght;
+		if (!lenght) break;
 
-	srand(time(0));
-	for (i = 0; i < lenght; ++i)
-	{
-		cout << "Склеен " +to_string(i+1) + " файл\n";
-		k = rand() % n;
-		wav.add(all_dir[k]);
+
+		size_t k, i, n = all_dir.size();
+		wav.clear();
+		for (i = 0; i < lenght; ++i)
+		{
+			cout << "Склеен " + to_string(i + 1) + " файл\n";
+			k = rand() % n;
+			wav.add("biblio\\" + all_dir[k]);
+		}
+		cout << "Происходит общая склейка \n";
+		wav.writeInWav(nameFile + string(".wav"));
+		conwert(nameFile);
 	}
-	cout << "Происходит общая склейка \n";
-	wav.writeInWav(nameFile+string(".wav"));
-	conwert(nameFile);
 }

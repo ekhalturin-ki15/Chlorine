@@ -18,19 +18,14 @@ public:
 	string read(string name);
 	void readHead(ifstream& in);
 	void readData(ifstream& in);
-	//size_t getSize();
-	//tuple<int, int> getMiddle();
-	vector<char> one_simple;
-	vector<char> first_treak, second_treak;
+
+	void clear();
+
+	vector<char> data;
 
 	void add(string name);
 	void writeInWav(string name);
 	
-	size_t size_simple;
-	size_t dimension;
-	
-	//vector<size_t> ext;
-
 	struct WAV_Head
 	{
 		char chunkId[4]; // "RIFF" 
