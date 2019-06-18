@@ -28,13 +28,15 @@ vector<string> Loop::extractWAV(string path)
 	{
 		string dir;
 		dir = Files[i].string();
-		std::size_t found = dir.rfind("\\");
-		all_dir[i] = dir.substr(found+1);
+		size_t found1 = dir.rfind("\\")+1;
+		size_t found2 = dir.rfind(".");
+		all_dir[i] = dir.substr(found1, found2- found1);
+
 	}
 	return all_dir;
 }
 
-void conwert(string name)
+void Loop::conwert(string name)
 {
 	int read, write;
 
@@ -42,29 +44,99 @@ void conwert(string name)
 	FILE* pcm = fopen(inpName.c_str(), "rb");
 	FILE* mp3 = fopen(outName.c_str(), "wb");
 
-	const int PCM_SIZE = 8192;
-	const int MP3_SIZE = 8192;
+	const int ra = 100;
+	const int PCM_SIZE = ra* 8192*2;
+	const int MP3_SIZE = ra* 8192;
 
-	short int pcm_buffer[PCM_SIZE * 2];
-	unsigned char mp3_buffer[MP3_SIZE];
+	vector<short int> pcm_buffer(PCM_SIZE);
+	vector<unsigned char> mp3_buffer(MP3_SIZE);
 
 	lame_t lame = lame_init();
 	lame_set_in_samplerate(lame, 44100);
 	lame_set_VBR(lame, vbr_default);
 	lame_init_params(lame);
 
-	do {
-		read = fread(pcm_buffer, 2 * sizeof(short int), PCM_SIZE, pcm);
-		if (read == 0)
-			write = lame_encode_flush(lame, mp3_buffer, MP3_SIZE);
-		else
-			write = lame_encode_buffer_interleaved(lame, pcm_buffer, read, mp3_buffer, MP3_SIZE);
-		fwrite(mp3_buffer, write, 1, mp3);
-	} while (read != 0);
+
+
+	//read = fread(&(*pcm_buffer.begin()), 2*sizeof(short int), PCM_SIZE/2, pcm);
+	read = fread(&(*pcm_buffer.begin()), sizeof(short int), PCM_SIZE, pcm);
+		
+	write = lame_encode_buffer_interleaved(lame, &(*pcm_buffer.begin()), read/2, &(*mp3_buffer.begin()), MP3_SIZE);
+	//write = lame_encode_buffer_interleaved(lame, &(*pcm_buffer.begin()), read, &(*mp3_buffer.begin()), MP3_SIZE);
+	fwrite(&(*mp3_buffer.begin()), write, 1, mp3);
+	
+
+	write = lame_encode_flush(lame, &(*mp3_buffer.begin()), MP3_SIZE);
+	fwrite(&(*mp3_buffer.begin()), write, 1, mp3);
 
 	lame_close(lame);
 	fclose(mp3);
 	fclose(pcm);
+}
+
+int Loop::getRand(int state)
+{
+	int r = rand() % sum[state], i;
+	for (i = 0; i < probability[state].size(); ++i)
+	{
+		r -= probability[state][i];
+		if (r < 0) return i;
+			
+	}
+	return 0;
+}
+
+void Loop::parsingProbability()
+{
+	ifstream in;
+	in.open("библиотека\\информация.txt");
+
+	all_dir.push_back("конец"); all_dir.push_back("старт");
+
+	size_t i, name, who, num, n = all_dir.size();
+	probability.resize(n); sum.resize(n);
+	i = 0;
+	for (const auto& it : all_dir)
+	{
+		if (i>=n-2)
+			probability[i].resize(n - 2, 0);
+		else
+			probability[i].resize(n-2,1);
+		conformity[it] = i++;
+	}
+
+	string line;
+
+	in >> line;
+	while (true)
+	{
+		in >> line;
+		if (line == "сочетание:") break;
+		name = conformity[line];
+		in >> line;
+		if (line == "сочетание:")
+			while (true)
+			{
+				in >> line;
+				if (line == "кто:") break;
+				in >> num;
+				who = conformity[line];
+				probability[name][who] = num*10;
+			}
+	}
+
+	i = 0;
+	for (const auto& it : probability)
+	{
+		
+		num = 0;
+		for (const auto& it2 : it)
+		{
+			num += it2;
+		}
+		sum[i++] = num;
+	}
+
 }
 
 
@@ -85,30 +157,38 @@ void Loop::concat()
 
 	cout << "Подождите, идёт анализ\n";
 
-	vector<string> all_dir = extractWAV("biblio");
+	all_dir = extractWAV("библиотека");
 
-	while (true)
+	parsingProbability();
+
+	ifstream in; in.open("режим работы.txt");
+
+	string nameFile = "", line, message; bool work;
+	getline(in, line);
+	in >> nameFile;
+	getline(in, line);
+	getline(in, line);
+	getline(in, line);
+	in >> work;
+	getline(in, line);
+	getline(in, line); 
+	getline(in, line);
+
+	size_t lenght = 0;
+	while (getline(in, line))	message += line;
+	lenght = line.size();
+
+	size_t  i, n = all_dir.size(), state = n-1;
+	wav.clear();
+	for (i = 0; i < lenght; ++i)
 	{
-		cout << "Введите название файла (! - выйти) \n";
-		string nameFile = "";
-		cin >> nameFile;
-		if (nameFile == "!") break;
-		cout << "Из скольки семплов сделать склейку? (0 - выйти)\n";
-		size_t lenght = 0;
-		cin >> lenght;
-		if (!lenght) break;
-
-
-		size_t k, i, n = all_dir.size();
-		wav.clear();
-		for (i = 0; i < lenght; ++i)
-		{
-			cout << "Склеен " + to_string(i + 1) + " файл\n";
-			k = rand() % n;
-			wav.add("biblio\\" + all_dir[k]);
-		}
-		cout << "Происходит общая склейка \n";
-		wav.writeInWav(nameFile + string(".wav"));
-		conwert(nameFile);
+		cout << "Склеен " + to_string(i + 1) + " файл\n";
+		if (i == lenght - 1)	state = n - 2;//Концовка
+		state = getRand(state);
+		wav.add("библиотека\\" + all_dir[state] + ".wav");
 	}
+	cout << "Происходит общая склейка \n";
+	wav.writeInWav(nameFile + string(".wav"));
+	conwert(nameFile);
+	
 }

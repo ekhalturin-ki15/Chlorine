@@ -9,6 +9,7 @@
 #include <sstream>
 #include <ctime>
 #include <cmath>
+#include <unordered_map>
 #include "wav.h"
 
 using namespace std;
@@ -34,10 +35,23 @@ public:
 
 	void concat();
 
+	void conwert(string name);
+
 	vector<string> extractWAV(string path);
+
+	void parsingProbability();
+
+	int getRand(int state);
 
 private:
 	ofstream out;
 	_WAV wav;
+
+
+	unordered_map<string, int> conformity; //Соответствие названию индекса
+	vector<vector<int>> probability;//цепь Маркова Александра (по умолчанию у всех вероятность 1)
+	vector<int> sum; //Суммы для вероятности
+	vector<string> all_dir;//Все каталоги в библиотеке
+
 };
 
