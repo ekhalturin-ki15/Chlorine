@@ -26,8 +26,8 @@ void _WAV::readHead(ifstream& in)
 
 void _WAV::readData(ifstream& in)
 {
-	data.resize(WH.subchunk2Size);
-	in.read(&(*data.begin()), WH.subchunk2Size);
+	data.resize(WH.subchunk2Size/ 2); //Так как стерео
+	in.read((char*) &(*data.begin()), WH.subchunk2Size);
 	
 }
 
@@ -37,7 +37,12 @@ void _WAV::add(string name)
 	in.open(name, std::ios::in | std::ios::binary);
 	_WAV dop;
 	dop.read(name);
-	data.insert(data.end(), dop.data.begin(), dop.data.end());
+
+	data.insert(
+		data.end(),
+		std::make_move_iterator(dop.data.begin()),
+		std::make_move_iterator(dop.data.end())
+	);
 
 	if (WH.subchunk2Size == 0)
 	{
@@ -51,17 +56,30 @@ void _WAV::add(string name)
 
 void _WAV::writeInWav(string name)
 {
-	size_t i;
-
 	ofstream out;
 	out.open(name, ios::out | ios::binary);
 
 	out.write((char*)& WH, sizeof(WH));
-	out.write(&(*data.begin()), WH.subchunk2Size);
+	out.write((char*) &(*data.begin()), WH.subchunk2Size);
 }
 
 void _WAV::clear()
 {
 	this->WH.subchunk2Size = 0;
 	data.clear();
+}
+
+
+void _WAV::fullData()
+{
+	vector<short int> buffer(22);
+	memcpy(&(*buffer.begin()), (short int*)& WH, sizeof(WH));
+
+	buffer.insert(
+		buffer.end(),
+		std::make_move_iterator(data.begin()),
+		std::make_move_iterator(data.end())
+	);
+
+	data = buffer;
 }

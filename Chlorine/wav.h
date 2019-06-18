@@ -18,10 +18,10 @@ public:
 	string read(string name);
 	void readHead(ifstream& in);
 	void readData(ifstream& in);
-
+	void fullData();
 	void clear();
 
-	vector<char> data;
+	vector<short int> data;
 
 	void add(string name);
 	void writeInWav(string name);

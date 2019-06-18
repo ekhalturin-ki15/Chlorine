@@ -38,40 +38,28 @@ vector<string> Loop::extractWAV(string path)
 
 void Loop::conwert(string name)
 {
-	int read, write;
+	int write;
 
-	string inpName = name + string(".wav"), outName = name + string(".mp3");
-	FILE* pcm = fopen(inpName.c_str(), "rb");
+	string outName = name + string(".mp3");
 	FILE* mp3 = fopen(outName.c_str(), "wb");
 
-	const int ra = 100;
-	const int PCM_SIZE = ra* 8192*2;
-	const int MP3_SIZE = ra* 8192;
-
-	vector<short int> pcm_buffer(PCM_SIZE);
-	vector<unsigned char> mp3_buffer(MP3_SIZE);
+	vector<unsigned char> mp3_buffer(wav.data.size()/2);
 
 	lame_t lame = lame_init();
 	lame_set_in_samplerate(lame, 44100);
 	lame_set_VBR(lame, vbr_default);
 	lame_init_params(lame);
-
-
-
-	//read = fread(&(*pcm_buffer.begin()), 2*sizeof(short int), PCM_SIZE/2, pcm);
-	read = fread(&(*pcm_buffer.begin()), sizeof(short int), PCM_SIZE, pcm);
 		
-	write = lame_encode_buffer_interleaved(lame, &(*pcm_buffer.begin()), read/2, &(*mp3_buffer.begin()), MP3_SIZE);
-	//write = lame_encode_buffer_interleaved(lame, &(*pcm_buffer.begin()), read, &(*mp3_buffer.begin()), MP3_SIZE);
+	write = lame_encode_buffer_interleaved(lame, &(*wav.data.begin()), wav.data.size() / 2, &(*mp3_buffer.begin()), mp3_buffer.size());
+
 	fwrite(&(*mp3_buffer.begin()), write, 1, mp3);
 	
+	write = lame_encode_flush(lame, &(*mp3_buffer.begin()), mp3_buffer.size());
 
-	write = lame_encode_flush(lame, &(*mp3_buffer.begin()), MP3_SIZE);
 	fwrite(&(*mp3_buffer.begin()), write, 1, mp3);
 
 	lame_close(lame);
 	fclose(mp3);
-	fclose(pcm);
 }
 
 int Loop::getRand(int state)
@@ -188,7 +176,7 @@ void Loop::concat()
 		wav.add("библиотека\\" + all_dir[state] + ".wav");
 	}
 	cout << "Происходит общая склейка \n";
-	wav.writeInWav(nameFile + string(".wav"));
+	//wav.writeInWav(nameFile + string(".wav"));
 	conwert(nameFile);
 	
 }
