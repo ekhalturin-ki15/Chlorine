@@ -1,0 +1,182 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <fstream>
+#include <iomanip>
+
+using namespace std;
+
+#if _DEBUG
+    static const bool _Debug = true;
+#else
+    static const bool _Debug = false;
+#endif
+
+
+#if WIN32
+    typedef int inta; //Для x86 процессоров
+    static const int DC = EINTR; //4 Количество десятичных разрядов (Константы из errno) 
+#else
+    typedef __int64 inta; //Для x64 процессоров 
+    //Явное указание большой размерности
+    static const int DC = EBADF; //9 Количество десятичных разрядов (Константы из errno)
+#endif
+
+inta Bin_Pow(int num, int pow);
+
+static const int Arch = ECHILD; //10 Вес разряда
+static const inta Int_Base = Bin_Pow(Arch, DC);
+
+inta Bin_Pow(int num, int pow)
+{
+    int ret = 1;
+    while (pow)
+    {
+        if (pow & 1) ret *= num;
+        num *= num;
+        pow >>= 1;
+    }
+    return ret;
+}
+
+#ifdef D_RED	//Работа с константами и внешними данными
+namespace RED
+{
+    ifstream cin; // Используем вместо ввода с консоли
+    ofstream cout;
+
+#endif
+    typedef vector<inta> i_num; // Храним числа в перевернутом виде
+
+    struct I_num
+    {
+        friend I_num operator+(const I_num& left, const I_num& right);
+
+        I_num()
+        {
+            num.resize(1); // Объявляем за нуль
+        }
+
+        I_num(const string& s)
+        {
+            i_num& th = this->num;
+            th.resize((s.size() - 1) / DC + 1); //Из строки в числа
+            int i = 0, j = 0;
+            inta x = 1;
+            
+            for_each
+            (s.rbegin(), s.rend(), [&i, &j, &x, &th](const int& it)
+                {
+                    th[i] += x * (it - '0');
+                    if (++j < DC)
+                        x *= Arch;
+                    else
+                        x = 1, j = 0, ++i;
+                }
+            );
+        }
+
+        i_num num;
+    };
+
+    I_num operator+(const I_num& left, const I_num& right)
+    {
+        const I_num* p_max = &left;
+        const I_num* p_min = &right;
+
+        const i_num& l = left.num; // Так как в с++ нет gettera по умолчанию (property в C#)
+        const i_num& r = right.num;
+
+        if (l.size() < r.size()) swap(p_max, p_min);
+
+        I_num retur(*p_max);
+        i_num& ret = retur.num;
+
+        inta rem = 0; int i = 0;
+
+        std::for_each /*Сложение*/
+        (ret.begin(), ret.end(),
+            [&rem, &i, p_min](inta& it)
+            {
+                it += rem;
+                it += (i < p_min->num.size()) ? ((p_min->num)[i++]) : 0;
+                // Проверка выхода за границы массива
+                rem = it / Int_Base;
+                it %= Int_Base;
+            }
+        );
+        if (rem) ret.push_back(rem);
+        return retur;
+    }
+
+
+#ifdef D_RED	//Работа с константами и внешними данными
+}
+#endif
+
+//---------------------------
+
+#ifdef D_RED	//Работа с константами и внешними данными
+namespace RED
+{
+#endif
+
+    struct Singleton
+    {
+        string s1, s2;
+        void start()
+        {
+            in();
+
+            I_num res(static_cast<I_num>(s1) + static_cast<I_num>(s2)); //(sum(conv(s1), conv(s2)));
+            //i_num res((s1.size() - 1) / DC + 1); // Для замера скорости I/O
+
+            out(res);
+        }
+
+        void in()
+        {
+            cin >> s1 >> s2;
+        }
+
+        void out(const I_num& res)
+        {
+            //Нужно добить ведущеми нулями всё, кроме первого разряда
+            cout << res.num.back();
+            for_each(res.num.rbegin() + 1, res.num.rend(), [](const inta& it) {cout << setfill('0') << setw(DC) <<  it; }); //Обратный вывод
+        }
+    };
+
+#ifdef D_RED	//Работа с константами и внешними данными
+}
+#endif
+
+
+int  main()
+{
+    int amount_test = 1; //Множественное тестирование
+
+#ifdef D_RED	//Работа с константами и внешними данными
+    RED::cin.open("input.txt");
+    RED::cout.open("output.txt");
+
+    RED::cin >> amount_test;
+    vector<RED::Singleton> v(1); // Синглтон
+#else
+    #ifdef ONLINE_JUDGE
+        cin >> amount_test;
+    #endif
+    vector<Singleton> v(1); // Синглтон
+#endif
+
+    for (int i = 0; i < amount_test; ++i)
+    {
+        v[0].start();
+        v.clear();
+        v.resize(1);
+#ifdef D_RED
+        RED::cout << "\n --- test number " << i + 1 << " ---- ---- " << endl;
+#endif
+    }
+
+}
